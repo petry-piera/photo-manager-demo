@@ -1,0 +1,48 @@
+{
+  "name": "photo-manager",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Personal photo collection organizer - local, fast, and private",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dexie": "^3.2.4",
+    "exifreader": "^4.17.0",
+    "sortablejs": "^1.15.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/sortablejs": "^1.15.7",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
+    "eslint": "^8.45.0",
+    "happy-dom": "^12.10.3",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.2",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "browserslist": [
+    "Chrome >= 86",
+    "Firefox >= 82",
+    "Safari >= 14",
+    "Edge >= 86"
+  ]
+}

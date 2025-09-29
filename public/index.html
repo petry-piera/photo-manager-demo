@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="PhotoManager - Organize your personal photo collection locally and privately" />
+    <meta name="theme-color" content="#2563eb" />
+
+    <!-- PWA Meta Tags -->
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Performance Optimizations -->
+    <link rel="preconnect" href="/" />
+    <link rel="dns-prefetch" href="/" />
+
+    <!-- CSS Custom Properties for Theming -->
+    <style>
+        :root {
+            /* Color Scheme */
+            --color-primary: #2563eb;
+            --color-primary-dark: #1d4ed8;
+            --color-secondary: #64748b;
+            --color-background: #ffffff;
+            --color-surface: #f8fafc;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --color-error: #dc2626;
+            --color-success: #16a34a;
+            --color-warning: #d97706;
+
+            /* Dark Theme */
+            --color-background-dark: #0f172a;
+            --color-surface-dark: #1e293b;
+            --color-text-dark: #f1f5f9;
+            --color-text-secondary-dark: #94a3b8;
+            --color-border-dark: #334155;
+
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 3rem;
+
+            /* Typography */
+            --font-family-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+            --font-size-3xl: 1.875rem;
+
+            /* Layout */
+            --border-radius: 0.5rem;
+            --border-radius-lg: 0.75rem;
+            --box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --box-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+            /* Animation */
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+            /* Z-Index */
+            --z-dropdown: 1000;
+            --z-modal: 1050;
+            --z-tooltip: 1100;
+        }
+
+        /* Base Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-family: var(--font-family-sans);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background-color: var(--color-background);
+            color: var(--color-text);
+            min-height: 100vh;
+            font-size: var(--font-size-base);
+        }
+
+        /* Dark Theme */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-background: var(--color-background-dark);
+                --color-surface: var(--color-surface-dark);
+                --color-text: var(--color-text-dark);
+                --color-text-secondary: var(--color-text-secondary-dark);
+                --color-border: var(--color-border-dark);
+            }
+        }
+
+        /* High Contrast Mode */
+        @media (prefers-contrast: high) {
+            :root {
+                --color-border: #000000;
+                --box-shadow: 0 0 0 2px currentColor;
+            }
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            :root {
+                --transition-fast: 0ms;
+                --transition-normal: 0ms;
+            }
+
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-size: var(--font-size-lg);
+            color: var(--color-text-secondary);
+        }
+
+        /* Focus Styles for Accessibility */
+        :focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        /* Screen Reader Only Content */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+
+    <title>PhotoManager</title>
+</head>
+<body>
+    <!-- Skip Navigation for Accessibility -->
+    <a href="#main-content" class="sr-only">Skip to main content</a>
+
+    <!-- Main Application Container -->
+    <div id="app" role="main" aria-label="PhotoManager Application">
+        <!-- Loading State -->
+        <div class="loading" id="loading-state">
+            <span>Loading PhotoManager...</span>
+        </div>
+    </div>
+
+    <!-- Accessibility Announcements -->
+    <div id="aria-announcements" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
+    <!-- Application Entry Point -->
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

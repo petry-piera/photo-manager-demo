@@ -111,7 +111,7 @@ export class AlbumService {
     // Validate album data
     const { AlbumValidation } = await import('@/models/Album');
     const validation = AlbumValidation.validate(albumData);
-    if (!validation.valid) {
+    if (!validation.isValid) {
       throw new AlbumValidationError(
         `Invalid album data: ${validation.errors.join(', ')}`,
         validation.errors
@@ -162,7 +162,7 @@ export class AlbumService {
 
       const { AlbumValidation } = await import('@/models/Album');
       const validation = AlbumValidation.validate(updatedAlbum);
-      if (!validation.valid) {
+      if (!validation.isValid) {
         throw new AlbumValidationError(
           `Invalid album update data: ${validation.errors.join(', ')}`,
           validation.errors

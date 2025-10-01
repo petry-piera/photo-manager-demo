@@ -1,512 +1,381 @@
 /**
  * PhotoManager Application Entry Point
+ * Initializes services, database, and mounts the React application
  */
 
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell/AppShell';
+import { DragDropProvider } from '@/components/DragDrop/DragDropProvider';
+import { storageService } from '@/services/StorageService';
+import { photoService } from '@/services/PhotoService';
+import { albumService } from '@/services/AlbumService';
 import './styles/globals.css';
+
+/**
+ * Performance monitoring interface
+ */
+interface PerformanceMetrics {
+  navigationStart: number;
+  loadStart: number;
+  domContentLoaded: number;
+  loadComplete: number;
+  firstPaint?: number;
+  firstContentfulPaint?: number;
+}
+
+/**
+ * Application initialization state
+ */
+interface InitState {
+  storageReady: boolean;
+  servicesReady: boolean;
+  error?: Error;
+}
+
+/**
+ * Global error handler for unhandled promise rejections
+ */
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+  logError('unhandled_promise_rejection', event.reason);
+  event.preventDefault();
+});
+
+/**
+ * Global error handler for JavaScript errors
+ */
+window.addEventListener('error', (event) => {
+  console.error('Global JavaScript error:', event.error);
+  logError('javascript_error', event.error);
+});
+
+/**
+ * Service worker registration
+ */
+async function registerServiceWorker(): Promise<void> {
+  if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/'
+      });
+
+      console.log('Service Worker registered successfully:', registration);
+
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed') {
+              if (navigator.serviceWorker.controller) {
+                console.log('New app version available');
+                if (window.confirm('A new version of PhotoManager is available. Reload to update?')) {
+                  window.location.reload();
+                }
+              } else {
+                console.log('App is ready for offline use');
+              }
+            }
+          });
+        }
+      });
+
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+    }
+  }
+}
+
+/**
+ * Performance metrics collection
+ */
+function collectPerformanceMetrics(): PerformanceMetrics {
+  const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+  const paint = performance.getEntriesByType('paint');
+
+  const metrics: PerformanceMetrics = {
+    navigationStart: navigation.navigationStart,
+    loadStart: navigation.loadEventStart,
+    domContentLoaded: navigation.domContentLoadedEventEnd,
+    loadComplete: navigation.loadEventEnd
+  };
+
+  for (const entry of paint) {
+    if (entry.name === 'first-paint') {
+      metrics.firstPaint = entry.startTime;
+    } else if (entry.name === 'first-contentful-paint') {
+      metrics.firstContentfulPaint = entry.startTime;
+    }
+  }
+
+  return metrics;
+}
+
+/**
+ * Error logging function
+ */
+function logError(type: string, error: any): void {
+  try {
+    const errorLog = {
+      type,
+      message: error?.message || String(error),
+      stack: error?.stack,
+      timestamp: Date.now(),
+      url: window.location.href,
+      userAgent: navigator.userAgent
+    };
+
+    const storedErrors = localStorage.getItem('photoManager_errors');
+    const allErrors = storedErrors ? JSON.parse(storedErrors) : [];
+
+    allErrors.push(errorLog);
+
+    if (allErrors.length > 20) {
+      allErrors.splice(0, allErrors.length - 20);
+    }
+
+    localStorage.setItem('photoManager_errors', JSON.stringify(allErrors));
+  } catch (storageError) {
+    console.warn('Failed to store error log:', storageError);
+  }
+}
+
+/**
+ * Initialize database and services
+ */
+async function initializeServices(): Promise<InitState> {
+  const state: InitState = {
+    storageReady: false,
+    servicesReady: false
+  };
+
+  try {
+    console.log('🚀 Initializing PhotoManager...');
+
+    // Initialize storage service first
+    console.log('📦 Initializing storage service...');
+    await storageService.initialize();
+    state.storageReady = true;
+    console.log('✅ Storage service ready');
+
+    // Initialize other services
+    console.log('🔧 Initializing photo and album services...');
+
+    // Services should be ready immediately as they depend on storage service
+    await Promise.all([
+      photoService.initialize?.(),
+      albumService.initialize?.()
+    ].filter(Boolean));
+
+    state.servicesReady = true;
+    console.log('✅ All services ready');
+
+    return state;
+  } catch (error) {
+    console.error('❌ Failed to initialize services:', error);
+    state.error = error instanceof Error ? error : new Error(String(error));
+    return state;
+  }
+}
+
+/**
+ * Initialize application theme
+ */
+function initializeTheme(): void {
+  const savedTheme = localStorage.getItem('photoManager_theme');
+  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  let theme: string;
+  if (savedTheme && ['light', 'dark', 'auto'].includes(savedTheme)) {
+    theme = savedTheme;
+  } else {
+    theme = 'auto';
+  }
+
+  if (theme === 'auto') {
+    theme = systemPrefersDark ? 'dark' : 'light';
+  }
+
+  document.documentElement.setAttribute('data-theme', theme);
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    const currentTheme = localStorage.getItem('photoManager_theme');
+    if (!currentTheme || currentTheme === 'auto') {
+      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    }
+  });
+}
+
+/**
+ * Initialize accessibility features
+ */
+function initializeAccessibility(): void {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReducedMotion) {
+    document.documentElement.classList.add('reduce-motion');
+  }
+
+  window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+    if (e.matches) {
+      document.documentElement.classList.add('reduce-motion');
+    } else {
+      document.documentElement.classList.remove('reduce-motion');
+    }
+  });
+
+  const prefersHighContrast = window.matchMedia('(prefers-contrast: high)').matches;
+  if (prefersHighContrast) {
+    document.documentElement.classList.add('high-contrast');
+  }
+}
+
+/**
+ * Parse URL parameters to determine initial route
+ */
+function parseInitialRoute(): { view: 'home' | 'album' | 'settings'; albumId?: string } {
+  const path = window.location.pathname;
+  const searchParams = new URLSearchParams(window.location.search);
+
+  if (path.startsWith('/album/')) {
+    const albumId = path.split('/album/')[1];
+    return { view: 'album', albumId };
+  } else if (path === '/settings') {
+    return { view: 'settings' };
+  }
+
+  const view = searchParams.get('view');
+  const albumId = searchParams.get('album');
+
+  if (view === 'album' && albumId) {
+    return { view: 'album', albumId };
+  } else if (view === 'settings') {
+    return { view: 'settings' };
+  }
+
+  return { view: 'home' };
+}
+
+/**
+ * Mount React application
+ */
+function mountApplication(initState: InitState): void {
+  const container = document.getElementById('app') || document.getElementById('root');
+  if (!container) {
+    throw new Error('Root container not found');
+  }
+
+  const root = createRoot(container);
+  const initialRoute = parseInitialRoute();
+
+  const App = React.createElement(DragDropProvider, null,
+    React.createElement(AppShell, {
+      initialView: initialRoute.view,
+      initialAlbumId: initialRoute.albumId
+    })
+  );
+
+  root.render(App);
+
+  console.log('✅ PhotoManager application mounted successfully');
+}
 
 // Initialize the application
 async function initializeApp(): Promise<void> {
   try {
-    // Initialize database
-    const { db } = await import('./services/DatabaseService');
-    await db.initialize();
+    // Initialize theme and accessibility before anything else
+    initializeTheme();
+    initializeAccessibility();
 
-    console.log('✅ PhotoManager database initialized');
+    // Initialize services
+    const initState = await initializeServices();
 
-    // Show application interface
-    showAppInterface();
-
-    // Load settings and apply theme
-    await loadAndApplySettings();
-
-  } catch (error) {
-    console.error('❌ Failed to initialize PhotoManager:', error);
-    showErrorState(error instanceof Error ? error.message : 'Unknown initialization error');
-  }
-}
-
-/**
- * Show basic application interface
- */
-function showAppInterface(): void {
-  const appContainer = document.getElementById('app');
-  const loadingState = document.getElementById('loading-state');
-
-  if (!appContainer) {
-    throw new Error('App container not found');
-  }
-
-  // Remove loading state
-  if (loadingState) {
-    loadingState.remove();
-  }
-
-  // Create main application structure
-  appContainer.innerHTML = `
-    <div class="app-shell">
-      <!-- Header -->
-      <header class="app-header">
-        <div class="header-content">
-          <h1 class="app-title">PhotoManager</h1>
-          <div class="header-actions">
-            <button id="import-btn" class="btn btn-primary">
-              📁 Import Photos
-            </button>
-            <button id="settings-btn" class="btn btn-secondary">
-              ⚙️ Settings
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <!-- Main Content -->
-      <main id="main-content" class="main-content">
-        <div class="welcome-section">
-          <div class="welcome-content">
-            <h2>Welcome to PhotoManager</h2>
-            <p>Your personal photo collection organizer - local, fast, and private.</p>
-
-            <div class="features-grid">
-              <div class="feature-card">
-                <div class="feature-icon">📸</div>
-                <h3>Auto Organization</h3>
-                <p>Photos automatically organized by date from EXIF metadata</p>
-              </div>
-
-              <div class="feature-card">
-                <div class="feature-icon">🏷️</div>
-                <h3>Smart Tagging</h3>
-                <p>Tag and caption your photos for easy searching</p>
-              </div>
-
-              <div class="feature-card">
-                <div class="feature-icon">🔒</div>
-                <h3>Privacy First</h3>
-                <p>All data stays on your device - no cloud uploads</p>
-              </div>
-
-              <div class="feature-card">
-                <div class="feature-icon">⚡</div>
-                <h3>Fast Performance</h3>
-                <p>Handle thousands of photos efficiently</p>
-              </div>
-            </div>
-
-            <div class="getting-started">
-              <h3>Getting Started</h3>
-              <p>Click "Import Photos" to begin organizing your photo collection.</p>
-              <div class="supported-formats">
-                <strong>Supported formats:</strong> JPEG, PNG, WebP, HEIC
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Album Grid (will be populated when photos are imported) -->
-        <div id="album-grid" class="album-grid" style="display: none;">
-          <h2>Your Albums</h2>
-          <div id="albums-container" class="albums-container">
-            <!-- Albums will be rendered here -->
-          </div>
-        </div>
-      </main>
-
-      <!-- Status Bar -->
-      <footer class="status-bar">
-        <div class="status-info">
-          <span id="status-text">Ready</span>
-        </div>
-        <div class="storage-info">
-          <span id="storage-usage">Storage: 0 MB used</span>
-        </div>
-      </footer>
-    </div>
-  `;
-
-  // Add event listeners
-  setupEventListeners();
-}
-
-/**
- * Setup event listeners for UI interactions
- */
-function setupEventListeners(): void {
-  const importBtn = document.getElementById('import-btn');
-  const settingsBtn = document.getElementById('settings-btn');
-
-  if (importBtn) {
-    importBtn.addEventListener('click', handleImportPhotos);
-  }
-
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', handleOpenSettings);
-  }
-
-  // Listen for drag and drop
-  setupDragAndDrop();
-}
-
-/**
- * Handle photo import button click
- */
-async function handleImportPhotos(): Promise<void> {
-  try {
-    updateStatus('Preparing to import photos...');
-
-    // Check browser support
-    if (!('showOpenFilePicker' in window)) {
-      alert('File System Access API not supported. Please use drag and drop or a modern browser.');
-      return;
+    if (initState.error) {
+      throw initState.error;
     }
 
-    // Request file selection
-    const fileHandles = await (window as any).showOpenFilePicker({
-      multiple: true,
-      types: [{
-        description: 'Images',
-        accept: {
-          'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.heic']
-        }
-      }]
+    // Register service worker for offline support
+    await registerServiceWorker();
+
+    // Mount React application
+    mountApplication(initState);
+
+    // Collect and log performance metrics after load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const metrics = collectPerformanceMetrics();
+        console.group('📊 Performance Metrics');
+        console.log('DOM Content Loaded:', metrics.domContentLoaded - metrics.navigationStart, 'ms');
+        console.log('Load Complete:', metrics.loadComplete - metrics.navigationStart, 'ms');
+        if (metrics.firstPaint) console.log('First Paint:', metrics.firstPaint, 'ms');
+        if (metrics.firstContentfulPaint) console.log('First Contentful Paint:', metrics.firstContentfulPaint, 'ms');
+        console.groupEnd();
+      }, 100);
     });
 
-    if (fileHandles.length === 0) {
-      updateStatus('Ready');
-      return;
-    }
-
-    // Convert file handles to files
-    const files: File[] = [];
-    for (const handle of fileHandles) {
-      const file = await handle.getFile();
-      files.push(file);
-    }
-
-    updateStatus(`Processing ${files.length} files...`);
-
-    // Import photos using PhotoService
-    const { photoService } = await import('./services/PhotoService');
-    await photoService.initialize();
-
-    const result = await photoService.importPhotos(files, {
-      batchSize: 3,
-      generateThumbnails: true,
-      extractFullExif: true,
-      autoCreateAlbums: true,
-      duplicateHandling: 'rename',
-      onProgress: (progress) => {
-        updateStatus(`Processing ${progress.currentFileName} (${progress.current}/${progress.total})`);
-      }
-    });
-
-    if (result.errors.length > 0) {
-      console.warn('Import errors:', result.errors);
-      updateStatus(`Imported ${result.imported.length} photos with ${result.errors.length} errors`);
-    } else {
-      updateStatus(`Successfully imported ${result.imported.length} photos!`);
-    }
-
-    // Refresh album grid with new photos
-    await refreshAlbumGrid();
-    await updateStorageInfo();
+    console.log('🎉 PhotoManager initialization complete');
 
   } catch (error) {
-    console.error('Import error:', error);
-    updateStatus('Import failed');
+    console.error('💥 Application initialization failed:', error);
+    logError('initialization_error', error);
 
-    if (error instanceof Error && error.name === 'AbortError') {
-      updateStatus('Import cancelled');
-    } else {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`Failed to import photos: ${errorMessage}`);
-    }
+    const errorInstance = error instanceof Error ? error : new Error(String(error));
+    showErrorState(errorInstance.message);
   }
-}
-
-/**
- * Handle settings button click
- */
-function handleOpenSettings(): void {
-  // TODO: Open settings modal (not implemented yet)
-  alert('Settings panel coming soon!');
-}
-
-/**
- * Setup drag and drop functionality
- */
-function setupDragAndDrop(): void {
-  const mainContent = document.getElementById('main-content');
-
-  if (!mainContent) return;
-
-  // Prevent default drag behaviors
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    mainContent.addEventListener(eventName, preventDefaults, false);
-    document.body.addEventListener(eventName, preventDefaults, false);
-  });
-
-  // Highlight drop zone
-  ['dragenter', 'dragover'].forEach(eventName => {
-    mainContent.addEventListener(eventName, highlight, false);
-  });
-
-  ['dragleave', 'drop'].forEach(eventName => {
-    mainContent.addEventListener(eventName, unhighlight, false);
-  });
-
-  // Handle dropped files
-  mainContent.addEventListener('drop', handleDrop, false);
-
-  function preventDefaults(e: Event): void {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-
-  function highlight(): void {
-    mainContent?.classList.add('drag-over');
-  }
-
-  function unhighlight(): void {
-    mainContent?.classList.remove('drag-over');
-  }
-
-  async function handleDrop(e: DragEvent): Promise<void> {
-    const files = Array.from(e.dataTransfer?.files || []);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
-
-    if (imageFiles.length === 0) {
-      alert('Please drop image files only.');
-      return;
-    }
-
-    updateStatus(`Processing ${imageFiles.length} dropped files...`);
-
-    try {
-      // Import dropped photos using PhotoService
-      const { photoService } = await import('./services/PhotoService');
-      await photoService.initialize();
-
-      const result = await photoService.importPhotos(imageFiles, {
-        batchSize: 3,
-        generateThumbnails: true,
-        extractFullExif: true,
-        autoCreateAlbums: true,
-        duplicateHandling: 'rename',
-        onProgress: (progress) => {
-          updateStatus(`Processing ${progress.currentFileName} (${progress.current}/${progress.total})`);
-        }
-      });
-
-      if (result.errors.length > 0) {
-        console.warn('Import errors:', result.errors);
-        updateStatus(`Imported ${result.imported.length} photos with ${result.errors.length} errors`);
-      } else {
-        updateStatus(`Successfully imported ${result.imported.length} photos!`);
-      }
-
-      // Refresh album grid and storage info
-      await refreshAlbumGrid();
-      await updateStorageInfo();
-
-    } catch (error) {
-      console.error('Drop import error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      updateStatus(`Import failed: ${errorMessage}`);
-    }
-  }
-}
-
-/**
- * Load and apply application settings
- */
-async function loadAndApplySettings(): Promise<void> {
-  try {
-    const { db } = await import('./services/DatabaseService');
-    const settings = await db.appSettings.get('main');
-
-    if (settings) {
-      // Apply theme
-      applyTheme(settings.theme);
-      updateStorageInfo();
-    }
-  } catch (error) {
-    console.warn('Failed to load settings:', error);
-  }
-}
-
-/**
- * Apply theme to document
- */
-function applyTheme(theme: 'light' | 'dark' | 'system'): void {
-  const root = document.documentElement;
-
-  if (theme === 'system') {
-    // Use system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-  } else {
-    root.setAttribute('data-theme', theme);
-  }
-}
-
-/**
- * Update storage usage information
- */
-async function updateStorageInfo(): Promise<void> {
-  try {
-    const { db } = await import('./services/DatabaseService');
-    const stats = await db.getUsageStats();
-
-    const storageElement = document.getElementById('storage-usage');
-    if (storageElement) {
-      const sizeMB = (stats.estimatedSize / (1024 * 1024)).toFixed(1);
-      storageElement.textContent = `Storage: ${sizeMB} MB used • ${stats.photosCount} photos • ${stats.albumsCount} albums`;
-    }
-  } catch (error) {
-    console.warn('Failed to update storage info:', error);
-  }
-}
-
-/**
- * Refresh album grid with current albums
- */
-async function refreshAlbumGrid(): Promise<void> {
-  try {
-    const { albumService } = await import('./services/AlbumService');
-    await albumService.initialize();
-
-    const albums = await albumService.getAllAlbums();
-    const albumGrid = document.getElementById('album-grid');
-    const albumsContainer = document.getElementById('albums-container');
-
-    if (!albumGrid || !albumsContainer) return;
-
-    if (albums.length === 0) {
-      albumGrid.style.display = 'none';
-      return;
-    }
-
-    // Show album grid
-    albumGrid.style.display = 'block';
-
-    // Clear existing albums
-    albumsContainer.innerHTML = '';
-
-    // Render albums
-    for (const album of albums) {
-      const albumElement = document.createElement('div');
-      albumElement.className = 'album-card';
-      albumElement.style.cssText = `
-        background: var(--color-surface);
-        border-radius: var(--border-radius-lg);
-        padding: var(--spacing-lg);
-        box-shadow: var(--box-shadow);
-        cursor: pointer;
-        transition: transform var(--transition-fast);
-        text-align: center;
-      `;
-
-      // Get cover photo for thumbnail
-      let thumbnailHtml = '<div style="width: 150px; height: 150px; background: var(--color-background); border-radius: var(--border-radius); display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto var(--spacing-md);">📸</div>';
-
-      try {
-        const coverPhoto = await albumService.getAlbumCover(album.id);
-        if (coverPhoto?.thumbnailDataUrl) {
-          thumbnailHtml = `<img src="${coverPhoto.thumbnailDataUrl}" alt="${album.name}" style="width: 150px; height: 150px; object-fit: cover; border-radius: var(--border-radius); margin: 0 auto var(--spacing-md); display: block;">`;
-        }
-      } catch (error) {
-        console.warn('Failed to load album cover:', error);
-      }
-
-      albumElement.innerHTML = `
-        ${thumbnailHtml}
-        <h3 style="margin: 0 0 var(--spacing-sm); color: var(--color-text); font-size: var(--font-size-lg);">${album.name}</h3>
-        <p style="margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-sm);">${album.photoCount} photos</p>
-      `;
-
-      // Add hover effect
-      albumElement.addEventListener('mouseenter', () => {
-        albumElement.style.transform = 'translateY(-2px)';
-        albumElement.style.boxShadow = 'var(--box-shadow-lg)';
-      });
-
-      albumElement.addEventListener('mouseleave', () => {
-        albumElement.style.transform = 'none';
-        albumElement.style.boxShadow = 'var(--box-shadow)';
-      });
-
-      albumElement.addEventListener('click', () => {
-        // TODO: Open album view
-        alert(`Opening album: ${album.name} (${album.photoCount} photos)`);
-      });
-
-      albumsContainer.appendChild(albumElement);
-    }
-
-  } catch (error) {
-    console.warn('Failed to refresh album grid:', error);
-  }
-}
-
-/**
- * Update status text
- */
-function updateStatus(message: string): void {
-  const statusElement = document.getElementById('status-text');
-  if (statusElement) {
-    statusElement.textContent = message;
-  }
-
-  // Auto-clear status after 5 seconds
-  setTimeout(() => {
-    if (statusElement && statusElement.textContent === message) {
-      statusElement.textContent = 'Ready';
-    }
-  }, 5000);
 }
 
 /**
  * Show error state
  */
 function showErrorState(message: string): void {
-  const appContainer = document.getElementById('app');
-
-  if (appContainer) {
-    appContainer.innerHTML = `
-      <div class="error-state">
+  const container = document.getElementById('app') || document.getElementById('root');
+  if (container) {
+    container.innerHTML = `
+      <div class="app-error-screen">
         <div class="error-content">
-          <h1>⚠️ PhotoManager Error</h1>
-          <p>Failed to initialize the application:</p>
-          <div class="error-message">${message}</div>
-          <button onclick="location.reload()" class="btn btn-primary">
-            🔄 Retry
-          </button>
+          <div class="error-icon">⚠️</div>
+          <h1>Failed to Start PhotoManager</h1>
+          <p class="error-message">${message}</p>
+          <div class="error-actions">
+            <button onclick="window.location.reload()" class="btn btn-primary">
+              Reload Application
+            </button>
+            <button onclick="localStorage.clear(); window.location.reload()" class="btn btn-secondary">
+              Reset Data & Reload
+            </button>
+          </div>
         </div>
       </div>
     `;
   }
 }
 
-/**
- * Handle keyboard shortcuts
- */
-document.addEventListener('keydown', (e: KeyboardEvent) => {
-  // Ctrl/Cmd + O for import
-  if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-    e.preventDefault();
-    handleImportPhotos();
-  }
-
-  // Ctrl/Cmd + , for settings
-  if ((e.ctrlKey || e.metaKey) && e.key === ',') {
-    e.preventDefault();
-    handleOpenSettings();
-  }
-});
-
 // Initialize the application when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
   initializeApp();
+}
+
+// Make development debugging easier
+if (import.meta.env.DEV) {
+  (window as any).photoManagerDebug = {
+    storageService,
+    photoService,
+    albumService,
+    getPerformanceMetrics: () => {
+      const stored = localStorage.getItem('photoManager_performance');
+      return stored ? JSON.parse(stored) : [];
+    },
+    getErrorLogs: () => {
+      const stored = localStorage.getItem('photoManager_errors');
+      return stored ? JSON.parse(stored) : [];
+    },
+    clearData: () => {
+      localStorage.clear();
+      indexedDB.deleteDatabase('PhotoManagerDB');
+      console.log('All application data cleared');
+    }
+  };
+
+  console.log('🛠️ Development mode - Debug tools available at window.photoManagerDebug');
 }

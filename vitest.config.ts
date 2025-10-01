@@ -5,8 +5,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
-    include: ['tests/**/*.{test,spec}.{js,ts}'],
-    exclude: ['tests/e2e/**/*', 'node_modules/**/*'],
+    include: ['tests/**/*.{test,spec}.{js,ts,tsx}'],
+    exclude: ['tests/e2e/**/*', 'tests/performance/**/*', 'tests/accessibility/**/*', 'node_modules/**/*'],
+    setupFiles: ['tests/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

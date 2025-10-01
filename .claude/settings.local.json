@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "Bash(npm run test:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test)",
+      "Bash(npm test:*)",
+      "Bash(npm run lint)",
+      "Bash(timeout 30s npm test tests/unit/utils/image-utils.test.ts)",
+      "Bash(timeout 30s npm test tests/unit/utils/dom-utils.test.ts)",
+      "Bash(curl:*)",
+      "Bash(mv:*)",
+      "Read(//home/petry/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

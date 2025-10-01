@@ -5,6 +5,7 @@
 import { storageService } from './StorageService';
 import { exifService } from './ExifService';
 import type { Photo, PhotoCreateData, PhotoUpdateData } from '@/models/Photo';
+import { PhotoUtils } from '@/models/Photo';
 import type { ExifData } from './ExifService';
 import {
   validatePhotoFiles,
@@ -250,9 +251,11 @@ export class PhotoService {
     const { generateThumbnails, extractFullExif, autoCreateAlbums, duplicateHandling } = options;
 
     // Extract EXIF data
+    console.log(`📸 Processing file: ${file.name}, size: ${file.size}, type: ${file.type}`);
     const exifData = extractFullExif
       ? await exifService.extractExifData(file)
       : await exifService.extractQuickMetadata(file);
+    console.log('📋 EXIF data extracted:', exifData);
 
     // Generate safe filename
     let fileName = sanitizeFilename(file.name);
@@ -268,24 +271,45 @@ export class PhotoService {
       thumbnailDataUrl = await this.generateThumbnail(file);
     }
 
-    // Create photo data
-    const photoData: PhotoCreateData = {
+    // Get image dimensions if not available from EXIF
+    // Note: extractQuickMetadata returns width/height directly, not in dimensions object
+    let width = exifData.width || exifData.dimensions?.width;
+    let height = exifData.height || exifData.dimensions?.height;
+    console.log(`🖼️  Dimensions from EXIF: ${width}x${height}`);
+
+    if (!width || !height) {
+      console.log('🔍 Extracting dimensions from image...');
+      const dimensions = await this.getImageDimensions(file);
+      width = dimensions.width;
+      height = dimensions.height;
+      console.log(`✅ Extracted dimensions: ${width}x${height}`);
+    }
+
+    // Create photo object with all required fields
+    const photoData: Photo = {
+      id: crypto.randomUUID(), // Generate UUID for id
       fileName,
-      originalFileName: file.name,
-      mimeType: file.type,
+      filePath: `local://photos/${fileName}`, // Virtual path for browser storage
       fileSize: file.size,
-      dateTaken: exifData.dateTaken,
+      mimeType: file.type,
+      width,
+      height,
+      dateTaken: exifData.dateTaken || new Date(), // Use current date if no EXIF date
       dateAdded: new Date(),
-      width: exifData.width,
-      height: exifData.height,
+      dateModified: new Date(),
       thumbnailDataUrl,
-      exifData: extractFullExif ? exifData : undefined,
-      caption: exifData.description,
+      caption: exifData.description || '',
       tags: exifData.keywords || [],
-      albumIds: []
+      albumIds: [],
+      camera: exifData.camera ? `${exifData.camera.make || ''} ${exifData.camera.model || ''}`.trim() : undefined,
+      location: exifData.location
     };
 
-    // Store photo
+    console.log('📦 Photo data created:', photoData);
+    console.log('🔍 Validation check - ID:', photoData.id, 'UUID valid:', /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(photoData.id));
+    console.log('🔍 Validation check - dimensions:', `${photoData.width}x${photoData.height}`, 'valid:', typeof photoData.width === 'number' && photoData.width > 0 && typeof photoData.height === 'number' && photoData.height > 0);
+
+    // Store photo directly since we have all required fields
     const photo = await storageService.storePhoto(photoData);
 
     // Auto-create and assign to date album if enabled
@@ -401,6 +425,27 @@ export class PhotoService {
       const updatedAlbumIds = photo.albumIds.filter(id => id !== albumId);
       await storageService.updatePhoto(photoId, { albumIds: updatedAlbumIds });
     }
+  }
+
+  /**
+   * Get image dimensions from file
+   */
+  private async getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+
+      img.onload = () => {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        URL.revokeObjectURL(img.src);
+      };
+
+      img.onerror = () => {
+        reject(new Error('Failed to load image for dimension extraction'));
+        URL.revokeObjectURL(img.src);
+      };
+
+      img.src = URL.createObjectURL(file);
+    });
   }
 
   /**

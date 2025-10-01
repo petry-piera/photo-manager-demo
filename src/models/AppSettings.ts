@@ -2,7 +2,7 @@
  * Application settings model for user preferences and configuration
  */
 
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark' | 'system' | 'auto';
 export type DuplicateHandling = 'skip' | 'rename' | 'ask';
 
 export interface AppSettings {
@@ -11,16 +11,23 @@ export interface AppSettings {
   // UI Preferences
   theme: Theme;
   language: string; // ISO language code
+  enableAnimations: boolean;
+  reduceMotion: boolean;
 
   // Performance Settings
   maxThumbnailSize: number; // Max thumbnail dimension
+  defaultThumbnailSize: string; // Default thumbnail size
   thumbnailQuality: number; // JPEG quality (0-1)
   maxConcurrentLoads: number; // Concurrent image loads
+  photosPerPage: number; // Photos per page
+  enableVirtualScrolling: boolean;
 
   // Import Settings
   autoOrganizeByDate: boolean; // Auto-create date albums
+  autoCreateDateAlbums: boolean; // Auto-create date albums (alternative name)
   duplicateHandling: DuplicateHandling;
   supportedFormats: string[]; // Supported MIME types
+  preserveOriginalFiles: boolean;
 
   // Storage
   maxStorageUsage: number; // Max IndexedDB usage in bytes
@@ -35,10 +42,16 @@ export const DEFAULT_SETTINGS: AppSettings = {
   id: 'main',
   theme: 'system',
   language: 'en',
+  enableAnimations: true,
+  reduceMotion: false,
   maxThumbnailSize: 200,
+  defaultThumbnailSize: 'normal',
   thumbnailQuality: 0.8,
   maxConcurrentLoads: 5,
+  photosPerPage: 50,
+  enableVirtualScrolling: true,
   autoOrganizeByDate: true,
+  autoCreateDateAlbums: true,
   duplicateHandling: 'ask',
   supportedFormats: [
     'image/jpeg',
@@ -47,6 +60,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     'image/webp',
     'image/heic',
   ],
+  preserveOriginalFiles: true,
   maxStorageUsage: 2 * 1024 * 1024 * 1024, // 2GB
   dateModified: new Date(),
 };
@@ -55,7 +69,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
  * Validation rules for AppSettings model
  */
 export class AppSettingsValidation {
-  private static readonly VALID_THEMES: Theme[] = ['light', 'dark', 'system'];
+  private static readonly VALID_THEMES: Theme[] = ['light', 'dark', 'system', 'auto'];
   private static readonly VALID_DUPLICATE_HANDLING: DuplicateHandling[] = ['skip', 'rename', 'ask'];
   private static readonly MIN_THUMBNAIL_SIZE = 50;
   private static readonly MAX_THUMBNAIL_SIZE = 500;

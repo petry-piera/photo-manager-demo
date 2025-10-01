@@ -35,10 +35,32 @@ export class AlbumValidation {
   private static readonly MIN_YEAR = 1900;
 
   /**
+   * Check if data looks like album data before validation
+   */
+  static isAlbumData(data: any): boolean {
+    return data &&
+           typeof data === 'object' &&
+           data !== null &&
+           // Check for at least some album-like properties
+           (typeof data.id === 'string' ||
+            typeof data.name === 'string' ||
+            typeof data.type === 'string');
+  }
+
+  /**
    * Validate an album object against business rules
    */
   static validate(album: Partial<Album>): ValidationResult {
     const errors: string[] = [];
+
+    // Check if the input is actually an object and not binary data
+    if (!album || typeof album !== 'object' || album === null) {
+      errors.push('Album data must be a valid object');
+      return {
+        isValid: false,
+        errors,
+      };
+    }
 
     // Required fields
     if (!album.id || !this.isValidUUID(album.id)) {

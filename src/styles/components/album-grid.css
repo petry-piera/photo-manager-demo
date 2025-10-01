@@ -1,0 +1,383 @@
+/**
+ * Album Grid Component Styles
+ */
+
+.album-grid {
+  width: 100%;
+}
+
+.album-grid-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.album-grid-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.album-grid-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.album-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  min-height: 200px;
+}
+
+.album-card {
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--box-shadow);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 2px solid transparent;
+  position: relative;
+}
+
+.album-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-lg);
+}
+
+.album-card:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.album-card.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.album-card.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+}
+
+.album-cover {
+  width: 100%;
+  height: 150px;
+  position: relative;
+  background-color: var(--color-background);
+  overflow: hidden;
+}
+
+.album-cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-fast);
+}
+
+.album-card:hover .album-cover-image {
+  transform: scale(1.05);
+}
+
+.album-cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  color: white;
+  font-size: 2.5rem;
+}
+
+.album-photo-count {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.album-info {
+  padding: var(--spacing-md);
+}
+
+.album-name {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--spacing-xs) 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.album-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.album-type {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.album-type.date {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.album-type.custom {
+  background-color: var(--color-secondary-light);
+  color: var(--color-secondary-dark);
+}
+
+.album-actions {
+  position: absolute;
+  top: var(--spacing-sm);
+  left: var(--spacing-sm);
+  display: flex;
+  gap: var(--spacing-xs);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.album-card:hover .album-actions {
+  opacity: 1;
+}
+
+.album-action-btn {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: var(--spacing-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.album-action-btn:hover {
+  background-color: white;
+  transform: scale(1.1);
+}
+
+.album-action-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.album-grid-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+}
+
+.album-grid-empty-icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.album-grid-loading {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-2xl);
+}
+
+.album-skeleton {
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.album-skeleton-cover {
+  width: 100%;
+  height: 150px;
+  background: linear-gradient(90deg,
+    var(--color-background) 0%,
+    var(--color-border) 50%,
+    var(--color-background) 100%);
+}
+
+.album-skeleton-info {
+  padding: var(--spacing-md);
+}
+
+.album-skeleton-name {
+  height: 20px;
+  background: linear-gradient(90deg,
+    var(--color-background) 0%,
+    var(--color-border) 50%,
+    var(--color-background) 100%);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-sm);
+  width: 80%;
+}
+
+.album-skeleton-meta {
+  height: 14px;
+  background: linear-gradient(90deg,
+    var(--color-background) 0%,
+    var(--color-border) 50%,
+    var(--color-background) 100%);
+  border-radius: var(--border-radius);
+  width: 60%;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Drag and Drop States */
+.album-grid-container.drag-over {
+  background-color: var(--color-primary-light);
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--border-radius-lg);
+  opacity: 0.8;
+}
+
+.album-drop-zone {
+  grid-column: 1 / -1;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.album-drop-zone.active {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+/* Multi-select mode */
+.album-grid.multi-select .album-card {
+  cursor: default;
+}
+
+.album-selection-checkbox {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background-color: white;
+  border-radius: 50%;
+  padding: var(--spacing-xs);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.album-grid.multi-select .album-selection-checkbox,
+.album-card.selected .album-selection-checkbox {
+  opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .album-grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .album-cover {
+    height: 120px;
+  }
+
+  .album-info {
+    padding: var(--spacing-sm);
+  }
+
+  .album-name {
+    font-size: var(--font-size-base);
+  }
+
+  .album-grid-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .album-grid-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .album-grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .album-cover {
+    height: 100px;
+  }
+
+  .album-photo-count {
+    font-size: var(--font-size-xs);
+    padding: 2px var(--spacing-xs);
+  }
+
+  .album-actions {
+    display: none; /* Hide on mobile for touch interaction */
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .album-card {
+    border: 2px solid var(--color-border);
+  }
+
+  .album-card:hover,
+  .album-card.selected {
+    border-width: 3px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .album-card:hover {
+    transform: none;
+  }
+
+  .album-card:hover .album-cover-image {
+    transform: none;
+  }
+
+  .album-skeleton,
+  .album-card.dragging {
+    animation: none;
+    transform: none;
+  }
+}

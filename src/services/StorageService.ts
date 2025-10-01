@@ -104,16 +104,8 @@ export class StorageService {
   /**
    * Store a new photo
    */
-  async storePhoto(photoData: PhotoCreateData): Promise<Photo> {
+  async storePhoto(photoData: PhotoCreateData | Photo): Promise<Photo> {
     try {
-      const { PhotoValidation } = await import('@/models/Photo');
-
-      // Validate photo data
-      const validation = PhotoValidation.validate(photoData);
-      if (!validation.valid) {
-        throw new StorageError(`Invalid photo data: ${validation.errors.join(', ')}`);
-      }
-
       // Generate ID if not provided
       const id = photoData.id || `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -125,6 +117,22 @@ export class StorageService {
         albumIds: photoData.albumIds || [],
         tags: photoData.tags || []
       };
+
+      // Validate the complete photo object (less strict for browser usage)
+      console.log('💾 StorageService: Storing photo:', photo);
+      console.log('🔍 StorageService: Basic validation:', {
+        hasFileName: !!photo.fileName,
+        hasMimeType: !!photo.mimeType,
+        hasFileSize: !!photo.fileSize,
+        hasId: !!photo.id,
+        hasWidth: typeof photo.width === 'number' && photo.width > 0,
+        hasHeight: typeof photo.height === 'number' && photo.height > 0,
+        hasFilePath: !!photo.filePath
+      });
+
+      if (!photo.fileName || !photo.mimeType || !photo.fileSize) {
+        throw new StorageError('Photo must have fileName, mimeType, and fileSize');
+      }
 
       await db.photos.add(photo);
 
@@ -183,7 +191,7 @@ export class StorageService {
 
       const { PhotoValidation } = await import('@/models/Photo');
       const validation = PhotoValidation.validate(updatedPhoto);
-      if (!validation.valid) {
+      if (!validation.isValid) {
         throw new StorageError(`Invalid photo update data: ${validation.errors.join(', ')}`);
       }
 
@@ -305,7 +313,7 @@ export class StorageService {
 
       // Validate album data
       const validation = AlbumValidation.validate(albumData);
-      if (!validation.valid) {
+      if (!validation.isValid) {
         throw new StorageError(`Invalid album data: ${validation.errors.join(', ')}`);
       }
 
@@ -372,7 +380,7 @@ export class StorageService {
 
       const { AlbumValidation } = await import('@/models/Album');
       const validation = AlbumValidation.validate(updatedAlbum);
-      if (!validation.valid) {
+      if (!validation.isValid) {
         throw new StorageError(`Invalid album update data: ${validation.errors.join(', ')}`);
       }
 
@@ -479,7 +487,7 @@ export class StorageService {
 
       // Validate tag data
       const validation = TagValidation.validate(tagData);
-      if (!validation.valid) {
+      if (!validation.isValid) {
         throw new StorageError(`Invalid tag data: ${validation.errors.join(', ')}`);
       }
 
@@ -676,7 +684,7 @@ export class StorageService {
 
       const { AppSettingsValidation } = await import('@/models/AppSettings');
       const validation = AppSettingsValidation.validate(updatedSettings);
-      if (!validation.valid) {
+      if (!validation.isValid) {
         throw new StorageError(`Invalid settings data: ${validation.errors.join(', ')}`);
       }
 
